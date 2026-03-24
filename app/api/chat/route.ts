@@ -85,7 +85,8 @@ export async function POST(req: Request) {
   console.log("[chat] Calling Gemini...");
 
   const googleProvider = createGoogleGenerativeAI({ apiKey });
-  const model = googleProvider(MODEL_ID);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const model = (googleProvider as any)(MODEL_ID, { thinkingConfig: { thinkingBudget: 0 } });
 
   const result = streamText({
     model,
