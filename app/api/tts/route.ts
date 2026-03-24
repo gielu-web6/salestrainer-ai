@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { text?: string; voice?: string };
+  let body: { text?: string; voice?: string; voiceName?: string };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -74,11 +74,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Pole 'text' (niepusty string) jest wymagane." }, { status: 400 });
   }
 
+  const directVoiceName = typeof body?.voiceName === "string" ? body.voiceName : null;
   const voiceParam = body.voice === "female" ? "female" : "male";
 
   if (genAiKey) {
     for (const model of GEMINI_TTS_MODELS) {
-      const geminiAudio = await tryGeminiTTS(genAiKey, text, voiceParam, model);
+      const geminiAudio = await tryGeminiTTS(genAiKey, text, voiceParam, model, directVoiceName ?? undefined);
       if (geminiAudio) {
         return NextResponse.json(geminiAudio);
       }
@@ -100,9 +101,10 @@ async function tryGeminiTTS(
   apiKey: string,
   text: string,
   voiceKey: "male" | "female",
-  model: string
+  model: string,
+  directVoiceName?: string
 ): Promise<{ audio: string; mimeType?: string } | null> {
-  const voiceName = GEMINI_VOICES[voiceKey];
+  const voiceName = directVoiceName ?? GEMINI_VOICES[voiceKey];
   const payload = {
     contents: [{ role: "user", parts: [{ text }] }],
     generationConfig: {

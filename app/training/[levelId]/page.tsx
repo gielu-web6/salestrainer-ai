@@ -46,7 +46,7 @@ async function speakWithGoogleTTS(
   text: string,
   options: {
     muted?: boolean;
-    voice?: "male" | "female";
+    voiceName?: string;
     signal?: AbortSignal;
     currentAudioRef?: { current: HTMLAudioElement | null };
     onTtsError?: (status: number | null, message: string) => void;
@@ -59,7 +59,7 @@ async function speakWithGoogleTTS(
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: trimmed, voice: options.voice ?? "male" }),
+      body: JSON.stringify({ text: trimmed, voiceName: options.voiceName }),
       signal: options.signal,
     });
 
@@ -124,6 +124,7 @@ export default function TrainingPage() {
   const [ttsErrorHint, setTtsErrorHint] = useState<string | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [inputValue, setInputValue] = useState("");
+  const [interimText, setInterimText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
 
@@ -163,7 +164,7 @@ export default function TrainingPage() {
     setTtsErrorHint(null);
     speakWithGoogleTTS(text, {
       muted: ttsMuted,
-      voice: "male",
+      voiceName: level?.voiceName,
       signal: controller.signal,
       currentAudioRef,
       onTtsError: (status, msg) => {
@@ -266,6 +267,7 @@ export default function TrainingPage() {
     if (isRecording) {
       recognitionRef.current?.stop();
       setIsRecording(false);
+      setInterimText("");
       return;
     }
 
@@ -274,7 +276,7 @@ export default function TrainingPage() {
         lang: string;
         interimResults: boolean;
         maxAlternatives: number;
-        onresult: ((e: { results: { [i: number]: { [i: number]: { transcript: string } } } }) => void) | null;
+        onresult: ((e: { results: { length: number; [i: number]: { isFinal: boolean; [i: number]: { transcript: string } } } }) => void) | null;
         onerror: (() => void) | null;
         onend: (() => void) | null;
         start: () => void;
@@ -292,16 +294,30 @@ export default function TrainingPage() {
 
     const recognition = new SpeechRecognitionAPI();
     recognition.lang = "pl-PL";
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setInputValue((prev) => (prev ? prev + " " + transcript : transcript));
+      let interim = "";
+      let final = "";
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          final += result[0].transcript;
+        } else {
+          interim += result[0].transcript;
+        }
+      }
+      if (final) {
+        setInputValue((prev) => (prev ? prev + " " + final.trim() : final.trim()));
+        setInterimText("");
+      } else {
+        setInterimText(interim);
+      }
     };
 
-    recognition.onerror = () => setIsRecording(false);
-    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = () => { setIsRecording(false); setInterimText(""); };
+    recognition.onend = () => { setIsRecording(false); setInterimText(""); };
 
     recognitionRef.current = recognition;
     recognition.start();
@@ -520,11 +536,13 @@ export default function TrainingPage() {
               <input
                 name="message"
                 type="text"
-                placeholder="Napisz lub powiedz odpowiedź…"
+                placeholder={isRecording ? "Słucham…" : "Napisz lub powiedz odpowiedź…"}
                 disabled={isStreaming}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                className="w-full bg-slate-950/60 border-2 border-white/10 text-white rounded-full pl-6 pr-28 py-4 md:py-5 focus:outline-none disabled:opacity-50 transition-all backdrop-blur-md text-lg focus:border-indigo-500 placeholder-slate-500"
+                value={interimText ? inputValue + (inputValue ? " " : "") + interimText : inputValue}
+                onChange={(e) => { if (!isRecording) setInputValue(e.target.value); }}
+                className={`w-full bg-slate-950/60 border-2 text-white rounded-full pl-6 pr-28 py-4 md:py-5 focus:outline-none disabled:opacity-50 transition-all backdrop-blur-md text-lg placeholder-slate-500 ${
+                  isRecording ? "border-red-500/60 focus:border-red-400" : "border-white/10 focus:border-indigo-500"
+                }`}
                 aria-label="Twoja wiadomość"
               />
               <div className="absolute right-2 top-2 bottom-2 flex items-center gap-1">
