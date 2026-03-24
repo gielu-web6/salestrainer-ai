@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateObject, type LanguageModelV1 } from "ai";
+import { generateObject, type LanguageModel } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import { getLevelById } from "@/lib/levels";
@@ -69,7 +69,7 @@ nextLevel = true tylko gdy sprzedawca realnie zasłużył na zaliczenie poziomu 
 
     const googleProvider = createGoogleGenerativeAI({ apiKey });
     const { object } = await generateObject({
-      model: googleProvider(MODEL_ID) as unknown as LanguageModelV1,
+      model: googleProvider(MODEL_ID) as unknown as LanguageModel,
       schema: FeedbackSchema,
       system: systemPrompt,
       prompt,
