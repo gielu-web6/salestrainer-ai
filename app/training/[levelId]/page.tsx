@@ -123,6 +123,9 @@ export default function TrainingPage() {
   const [ttsMuted, setTtsMuted] = useState(false);
   const [ttsErrorHint, setTtsErrorHint] = useState<string | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
 
   const { messages, append, status, error } = useChat({
     api: "/api/chat",
@@ -252,13 +255,57 @@ export default function TrainingPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const input = form.querySelector<HTMLInputElement>('input[name="message"]');
-    const text = input?.value?.trim();
+    const text = inputValue.trim();
     if (!text || isStreaming) return;
-    if (input) input.value = "";
+    setInputValue("");
     console.log("[Training] Wysyłam wiadomość do /api/chat:", text.slice(0, 50));
     append({ role: "user", content: text }, { body: { levelId } });
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    type AnyWindow = Window & {
+      SpeechRecognition?: new () => {
+        lang: string;
+        interimResults: boolean;
+        maxAlternatives: number;
+        onresult: ((e: { results: { [i: number]: { [i: number]: { transcript: string } } } }) => void) | null;
+        onerror: (() => void) | null;
+        onend: (() => void) | null;
+        start: () => void;
+        stop: () => void;
+      };
+      webkitSpeechRecognition?: AnyWindow["SpeechRecognition"];
+    };
+    const w = typeof window !== "undefined" ? (window as AnyWindow) : null;
+    const SpeechRecognitionAPI = w?.SpeechRecognition ?? w?.webkitSpeechRecognition ?? null;
+
+    if (!SpeechRecognitionAPI) {
+      alert("Twoja przeglądarka nie obsługuje dyktafonu. Użyj Chrome lub Edge.");
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = "pl-PL";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInputValue((prev) => (prev ? prev + " " + transcript : transcript));
+    };
+
+    recognition.onerror = () => setIsRecording(false);
+    recognition.onend = () => setIsRecording(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
   };
 
   return (
@@ -475,17 +522,35 @@ export default function TrainingPage() {
                 type="text"
                 placeholder="Napisz lub powiedz odpowiedź…"
                 disabled={isStreaming}
-                className="w-full bg-slate-950/60 border-2 border-white/10 text-white rounded-full pl-6 pr-14 py-4 md:py-5 focus:outline-none disabled:opacity-50 transition-all backdrop-blur-md text-lg focus:border-indigo-500 placeholder-slate-500"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                className="w-full bg-slate-950/60 border-2 border-white/10 text-white rounded-full pl-6 pr-28 py-4 md:py-5 focus:outline-none disabled:opacity-50 transition-all backdrop-blur-md text-lg focus:border-indigo-500 placeholder-slate-500"
                 aria-label="Twoja wiadomość"
               />
-              <button
-                type="submit"
-                disabled={isStreaming}
-                className="absolute right-2 top-2 bottom-2 aspect-square flex items-center justify-center bg-white text-indigo-600 rounded-full hover:bg-indigo-50 disabled:opacity-50 transition-all shadow-lg font-bold"
-                aria-label="Wyślij"
-              >
-                <Send size={20} className="ml-1" aria-hidden />
-              </button>
+              <div className="absolute right-2 top-2 bottom-2 flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={toggleRecording}
+                  disabled={isStreaming}
+                  className={`aspect-square h-full flex items-center justify-center rounded-full transition-all disabled:opacity-50 ${
+                    isRecording
+                      ? "bg-red-500 text-white shadow-[0_0_16px_rgba(239,68,68,0.6)] animate-pulse"
+                      : "bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white"
+                  }`}
+                  aria-label={isRecording ? "Zatrzymaj nagrywanie" : "Dyktuj wiadomość"}
+                  title={isRecording ? "Zatrzymaj nagrywanie" : "Dyktuj wiadomość"}
+                >
+                  <Mic size={18} aria-hidden />
+                </button>
+                <button
+                  type="submit"
+                  disabled={isStreaming}
+                  className="aspect-square h-full flex items-center justify-center bg-white text-indigo-600 rounded-full hover:bg-indigo-50 disabled:opacity-50 transition-all shadow-lg font-bold"
+                  aria-label="Wyślij"
+                >
+                  <Send size={20} className="ml-0.5" aria-hidden />
+                </button>
+              </div>
             </div>
           </form>
           {ttsErrorHint && (
