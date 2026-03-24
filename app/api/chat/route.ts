@@ -3,7 +3,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { getLevelById } from "@/lib/levels";
 
-const MODEL_ID = "gemini-1.5-flash";
+const MODEL_ID = "gemini-2.5-flash";
 
 /** Test: otwórz w przeglądarce http://localhost:3000/api/chat – w terminalu powinno pojawić się "[chat] GET /api/chat" */
 export async function GET() {
@@ -87,16 +87,11 @@ export async function POST(req: Request) {
   const googleProvider = createGoogleGenerativeAI({ apiKey });
   const model = googleProvider(MODEL_ID);
 
-  try {
-    const result = streamText({
-      model,
-      system: systemPrompt,
-      messages: modelMessages,
-    });
-    return result.toTextStreamResponse();
-  } catch (err) {
-    console.error("[chat] Gemini error:", err);
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  const result = streamText({
+    model,
+    system: systemPrompt,
+    messages: modelMessages,
+
+  });
+  return result.toTextStreamResponse();
 }
