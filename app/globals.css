@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy-950: #0a0f1a;
+  --slate-100: #f1f5f9;
+  --slate-400: #94a3b8;
+  --slate-600: #475569;
+  --zinc-800: #27272a;
+  /* Baza pod canvas (SSR + brak JS) – musi być czarna, nie transparent */
+  --app-bg-base: #000000;
+}
+
+html {
+  background-color: var(--app-bg-base);
+}
+
+body {
+  @apply text-slate-100 antialiased;
+  background-color: var(--app-bg-base);
+}
+
+/* Pływający navbar – animowany pasek gradientu (fiolet → błękit) */
+@keyframes navbar-gradient-flow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.navbar-gradient-bar {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    #8b5cf6,
+    #a78bfa,
+    #38bdf8,
+    #818cf8,
+    #8b5cf6
+  );
+  background-size: 300% 100%;
+  animation: navbar-gradient-flow 5s ease-in-out infinite;
+}
+
+/* CTA w navbarze – animowany gradient tła */
+@keyframes cta-gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.navbar-cta-gradient {
+  background: linear-gradient(
+    90deg,
+    #9333ea,
+    #ec4899,
+    #3b82f6,
+    #9333ea
+  );
+  background-size: 200% 200%;
+  animation: cta-gradient-shift 6s ease infinite;
+}
+
+/* Delikatne tło z szumem / głębią dla panelu treningowego */
+.noise-bg {
+  background-image:
+    radial-gradient(circle at 0 0, rgba(148, 163, 184, 0.16) 0, transparent 55%),
+    radial-gradient(circle at 100% 0, rgba(129, 140, 248, 0.18) 0, transparent 55%),
+    radial-gradient(circle at 0 100%, rgba(236, 72, 153, 0.12) 0, transparent 55%);
+}
+
+@keyframes pricing-border-flow {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(180deg);
+  }
+}
+
+/* Gradient Border Beam – powolne krążenie światła wokół karty Ekspert */
+@keyframes pricing-beam-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pricing-featured {
+  position: relative;
+  overflow: visible;
+}
+
+/* Świecąca wiązka światła wokół krawędzi (tylko obramowanie) */
+.pricing-featured::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 1.5rem;
+  padding: 3px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(30, 27, 75, 0.5) 0deg 140deg,
+    rgba(168, 85, 247, 0.95) 160deg,
+    rgba(236, 72, 153, 0.9) 200deg,
+    rgba(56, 189, 248, 0.85) 240deg,
+    rgba(30, 27, 75, 0.5) 280deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: pricing-beam-rotate 8s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Delikatna poświata pod kartą */
+.pricing-featured::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 1.5rem;
+  background: radial-gradient(
+    circle at 50% 0,
+    rgba(168, 85, 247, 0.2),
+    transparent 55%
+  );
+  filter: blur(20px);
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Niska częstotliwość pulsowania przycisku CTA */
+@keyframes cta-soft-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 24px rgba(168, 85, 247, 0.55);
+  }
+  50% {
+    opacity: 0.95;
+    box-shadow: 0 0 32px rgba(168, 85, 247, 0.75);
+  }
+}
+
+.pricing-cta-pulse {
+  animation: cta-soft-pulse 2.5s ease-in-out infinite;
+}
