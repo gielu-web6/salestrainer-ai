@@ -3,7 +3,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { getLevelById } from "@/lib/levels";
 
-const MODEL_ID = "gemini-2.0-flash";
+const MODEL_ID = "gemini-2.5-flash";
 
 /** Test: otwórz w przeglądarce http://localhost:3000/api/chat – w terminalu powinno pojawić się "[chat] GET /api/chat" */
 export async function GET() {
